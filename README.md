@@ -32,6 +32,36 @@ python3 -m pip install requests beautifulsoup4
    - `password`: ポータルのパスワード
    - `matrix_map`: マトリクス表の値
 
+   `env.py` の例 (リポジトリ直下に作成):
+   ```python
+   # env.py
+   # Titech Portal のログイン情報
+   username = "YOUR_PORTAL_USERNAME"
+   password = "YOUR_PORTAL_PASSWORD"
+
+   # マトリクス表 (A〜J 列, 1〜7 行)
+   # 下の表を自分のマトリクス表の値で埋めると、matrix_map (例: "a1") を自動生成します。
+   matrix_table = [
+      # A    B    C    D    E    F    G    H    I    J
+      ["",  "",  "",  "",  "",  "",  "",  "",  "",  ""],  # 1
+      ["",  "",  "",  "",  "",  "",  "",  "",  "",  ""],  # 2
+      ["",  "",  "",  "",  "",  "",  "",  "",  "",  ""],  # 3
+      ["",  "",  "",  "",  "",  "",  "",  "",  "",  ""],  # 4
+      ["",  "",  "",  "",  "",  "",  "",  "",  "",  ""],  # 5
+      ["",  "",  "",  "",  "",  "",  "",  "",  "",  ""],  # 6
+      ["",  "",  "",  "",  "",  "",  "",  "",  "",  ""],  # 7
+   ]
+
+   matrix_map = {
+      f"{chr(ord('a') + col)}{row + 1}": matrix_table[row][col]
+      for row in range(7)
+      for col in range(10)
+   }
+   ```
+
+   `matrix_map` は `{"a1": "…", "b1": "…", ...}` のような辞書です。
+   マトリクス認証が必要なため、基本的に空にはできません。
+
 2. `f5vpn-login.py` が実行可能なことを確認します。
 ```
 chmod +x f5vpn-login.py
