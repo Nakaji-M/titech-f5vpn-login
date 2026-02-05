@@ -1,14 +1,13 @@
 
+import argparse
 import getpass
 import json
 import os
 import re
-import sys
 import subprocess
-import urllib.request
-import urllib.parse
-from http.cookiejar import CookieJar
-from env import username, password, matrix_map
+import sys
+
+import keyring
 
 sys.path.append(os.getcwd())
 
@@ -26,8 +25,53 @@ VPN_POLICY_URL = f"https://{VPN_HOST}/my.policy"
 VPN_SERVICE_URL = f"https://{RP_HOST}/vpnaccess_apm/service/"
 VPN_SIGNIN_URL = f"https://{RP_HOST}/vpnaccess_apm/signin"
 USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15"
+KEYRING_SERVICE = "titech-f5vpn-login"
+
+
+def _normalize_matrix_map(data):
+    if not isinstance(data, dict):
+        raise ValueError("matrix_map must be a JSON object.")
+    return {str(k): str(v) for k, v in data.items()}
+
+
+def _load_matrix_map_from_file(path):
+    with open(path, "r") as f:
+        data = json.load(f)
+    return _normalize_matrix_map(data)
+
+
+def set_credentials(matrix_map_file=None):
+    username = input("Portal username: ").strip()
+    password = getpass.getpass("Portal password: ")
+
+    matrix_map = {}
+    if matrix_map_file:
+        matrix_map = _load_matrix_map_from_file(matrix_map_file)
+    else:
+        raw = input("Matrix map JSON (empty to skip): ").strip()
+        if raw:
+            matrix_map = _normalize_matrix_map(json.loads(raw))
+
+    keyring.set_password(KEYRING_SERVICE, "username", username)
+    keyring.set_password(KEYRING_SERVICE, "password", password)
+    keyring.set_password(KEYRING_SERVICE, "matrix_map", json.dumps(matrix_map))
+    print("Saved credentials to keyring.")
 
 def get_credentials():
+    username = keyring.get_password(KEYRING_SERVICE, "username")
+    password = keyring.get_password(KEYRING_SERVICE, "password")
+    matrix_map_raw = keyring.get_password(KEYRING_SERVICE, "matrix_map")
+
+    if not username or not password:
+        raise RuntimeError("Credentials not found in keyring. Run with --set-key to store them.")
+
+    matrix_map = {}
+    if matrix_map_raw:
+        try:
+            matrix_map = _normalize_matrix_map(json.loads(matrix_map_raw))
+        except json.JSONDecodeError:
+            raise RuntimeError("matrix_map in keyring is invalid JSON. Re-run with --set-key.")
+
     return username, password, matrix_map
 
 def run_f5vpn(session_id, host):
@@ -47,6 +91,19 @@ def run_f5vpn(session_id, host):
         print("\nExiting...")
 
 def main():
+    parser = argparse.ArgumentParser(description="Titech Portal + F5 VPN login")
+    parser.add_argument("--set-key", action="store_true", help="Store credentials into keyring")
+    parser.add_argument("--matrix-map-file", help="Path to JSON file for matrix_map (used with --set-key)")
+    args = parser.parse_args()
+
+    if args.set_key:
+        try:
+            set_credentials(matrix_map_file=args.matrix_map_file)
+        except Exception as e:
+            print(f"Failed to store credentials: {e}")
+            sys.exit(1)
+        return
+
     username, password, matrix_map = get_credentials()
 
     print("Logging into Titech Portal...")
