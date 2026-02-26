@@ -33,8 +33,10 @@ python3 -m pip install requests beautifulsoup4 keyring
 python3 automate_f5vpn.py --set-key
 ```
 
-   `matrix_map` は `{"a1": "…", "b1": "…", ...}` のような辞書です。
-   JSON を貼り付けるか、`--matrix-map-file` で JSON ファイルを指定できます。
+   上のコマンドを実行すると、ログインID、パスワード、`matrix_map` を入力するように求められます。
+   `matrix_map` は `{"a1": "…", "b1": "…", ...}` のような辞書もしくは `["…", "…", ...]` のようなリストです。
+   すなわち、TitechAppの「その他->マトリクスコードのexport」で得られるJSONをそのまま貼り付けることができます。
+   実行時に `matrix_map` を入力する代わりに、`--matrix-map-file` で JSON ファイルを指定することもできます。
 
 2. `f5vpn-login.py` が実行可能なことを確認します。
 ```

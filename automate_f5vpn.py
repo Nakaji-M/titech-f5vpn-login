@@ -28,16 +28,33 @@ USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.
 KEYRING_SERVICE = "titech-f5vpn-login"
 
 
-def _normalize_matrix_map(data):
-    if not isinstance(data, dict):
-        raise ValueError("matrix_map must be a JSON object.")
-    return {str(k): str(v) for k, v in data.items()}
+def _read_multiline_json(prompt: str) -> str:
+    """Read potentially multi-line JSON input, accumulating lines until valid."""
+    lines = [input(prompt).strip()]
+    if not lines[0]:
+        return ""
+    while True:
+        try:
+            json.loads("\n".join(lines))
+            return "\n".join(lines)
+        except json.JSONDecodeError:
+            try:
+                lines.append(input())
+            except EOFError:
+                return "\n".join(lines)
 
 
-def _load_matrix_map_from_file(path):
-    with open(path, "r") as f:
-        data = json.load(f)
-    return _normalize_matrix_map(data)
+def _parse_matrix(input_string: str):
+    input_string = input_string.strip()
+    if input_string.startswith("[") and input_string.endswith("]"):
+        # input_string is a list
+        # convert to dict
+        matrix_map = {}
+        for i, val in enumerate(json.loads(input_string)):
+            matrix_map[f"{chr(ord('a') + i // 7)}{i % 7 + 1}"] = str(val)
+        return matrix_map
+    else:
+        return {str(k): str(v) for k, v in json.loads(input_string).items()}
 
 
 def set_credentials(matrix_map_file=None):
@@ -46,11 +63,12 @@ def set_credentials(matrix_map_file=None):
 
     matrix_map = {}
     if matrix_map_file:
-        matrix_map = _load_matrix_map_from_file(matrix_map_file)
+        with open(matrix_map_file, "r") as f:
+            matrix_map = _parse_matrix(f.read())
     else:
-        raw = input("Matrix map JSON (empty to skip): ").strip()
+        raw = _read_multiline_json("Matrix map JSON (empty to skip): ")
         if raw:
-            matrix_map = _normalize_matrix_map(json.loads(raw))
+            matrix_map = _parse_matrix(raw)
 
     keyring.set_password(KEYRING_SERVICE, "username", username)
     keyring.set_password(KEYRING_SERVICE, "password", password)
@@ -68,7 +86,7 @@ def get_credentials():
     matrix_map = {}
     if matrix_map_raw:
         try:
-            matrix_map = _normalize_matrix_map(json.loads(matrix_map_raw))
+            matrix_map = json.loads(matrix_map_raw)
         except json.JSONDecodeError:
             raise RuntimeError("matrix_map in keyring is invalid JSON. Re-run with --set-key.")
 
