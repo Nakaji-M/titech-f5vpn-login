@@ -93,7 +93,8 @@ def get_credentials():
     return username, password, matrix_map
 
 def run_f5vpn(session_id, host):
-    f5vpn_script = "./f5vpn-login.py"
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    f5vpn_script = os.path.join(script_dir, "f5vpn-login.py")
     if not os.path.exists(f5vpn_script):
         print(f"Error: {f5vpn_script} not found.")
         return
