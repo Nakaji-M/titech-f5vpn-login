@@ -692,14 +692,6 @@ def run_event_loop(pppd_fd, ssl_socket, ssl, logpipe_r, ppp_ip_up):
     data_to_ssl = ''
     data_to_ssl_buf2 = ''
 
-    def sigusr1(sig, frame):
-        sys.stderr.write(
-            "ssl_write_blocked_on_read=%r, ssl_read_blocked_on_write=%r, data_to_pppd=%r, data_to_ssl=%r, data_to_ssl_buf2=%r, time_since_last_activity=%r\n" % (
-                ssl_write_blocked_on_read, ssl_read_blocked_on_write, data_to_pppd, data_to_ssl, data_to_ssl_buf2,
-                time.time() - last_activity_time))
-
-    signal.signal(signal.SIGUSR1, sigusr1)
-
     logwatcher = LogWatcher(ppp_ip_up)
 
     last_activity_time = time.time()
