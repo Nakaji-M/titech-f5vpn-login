@@ -230,7 +230,7 @@ def main():
         print("Finalizing Session...")
         data = {
             "username": form_username,
-            "password": password_value 
+            "password": password
         }
         
         try:
