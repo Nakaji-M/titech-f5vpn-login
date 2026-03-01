@@ -191,35 +191,12 @@ def main():
             print(content)
             sys.exit(1)
             
-        matrix_challenges = re.findall(r"\[([A-J]),([1-7])\]", content)
-        password_value = ""
-
-        if matrix_challenges:
-            print(f"Matrix Challenge Found: {matrix_challenges}")
-            if not matrix_map:
-                password_value = input("Enter Matrix Response manually: ")
-            else:
-                responses = []
-                for col, row in matrix_challenges:
-                    key = f"{col.lower()}{row}"
-                    val = matrix_map.get(key)
-                    if not val:
-                        val = input(f"Enter value for [{col},{row}]: ")
-                    responses.append(val)
-                password_value = "".join(responses)
-        else:
-            print("No Matrix Challenge found on page.")
-            print("Attempting to use Portal Password...")
-            password_value = password
-
-            if "Password:" in content:
-                 pass
-            else:
-                 print("Warning: Unknown Auth Page format.")
+        if "Password:" not in content:
+            print("Warning: Unknown Auth Page format.")
         
         print("Submitting VPN Password...")
         signin_url = f"https://{RP_HOST}/vpnaccess_apm/signin"
-        data = {"password": password_value}
+        data = {"password": password}
         
         try:
             resp = session.post(signin_url, data=data)
