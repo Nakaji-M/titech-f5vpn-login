@@ -1059,6 +1059,61 @@ def write_prefs(line):
 #      Taken from HEAD, tested as part of the unstable and testing Debian packages since May on
 #      various architectures.
 
+def connect_with_session(host, session_id, skip_dns=False, skip_routes=False, proxy=None):
+    """Connect to F5 VPN using an existing session ID.
+
+    This is the primary API for external callers (e.g. automate_f5vpn.py).
+    The caller must ensure the process is running as root.
+
+    Args:
+        host: VPN server hostname (e.g. 'apm.nap.gsic.titech.ac.jp').
+        session_id: A valid MRHSession cookie value.
+        skip_dns: If True, skip DNS configuration.
+        skip_routes: If True, skip route configuration.
+        proxy: Optional proxy tuple, e.g. ('http', ip, port) or ('socks5', ip, port).
+
+    Raises:
+        RuntimeError: If VPN parameters cannot be retrieved.
+        PermissionError: If not running as root.
+    """
+    global proxy_addr
+
+    if os.geteuid() != 0:
+        raise PermissionError(
+            "This function must be run as root. "
+            "Use 'sudo' to run the calling script."
+        )
+
+    # Set effective uid to userid; will become root as necessary
+    os.seteuid(os.getuid())
+
+    if proxy is not None:
+        proxy_addr = proxy
+
+    print("Getting VPN parameters...")
+    menu_number = get_vpn_menu_number(host, session_id)
+    if menu_number is None:
+        raise RuntimeError(
+            "Unable to find the 'Network Access' entry in main menu. "
+            "Do you have VPN access?"
+        )
+
+    params = get_VPN_params(host, session_id, menu_number)
+    if params is None:
+        raise RuntimeError("Could not retrieve VPN connection parameters.")
+
+    write_prefs('\0'.join(['', host, session_id]))
+    print("Got plugin params, starting VPN client...")
+
+    try:
+        execPPPd(params, skip_dns, skip_routes)
+    except KeyboardInterrupt:
+        pass
+    except SystemExit as se:
+        print(se)
+    print("Shut-down.")
+
+
 def main(argv):
     global proxy_addr
 

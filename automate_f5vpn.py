@@ -4,7 +4,6 @@ import getpass
 import json
 import os
 import re
-import subprocess
 import sys
 
 import keyring
@@ -16,6 +15,12 @@ try:
     from titech_portal_kit.utils import TitechPortalMatrix
 except ImportError:
     print("Error: Could not import titech_portal_kit. Please ensure you are running this script from the directory containing titech_portal_kit.")
+    sys.exit(1)
+
+try:
+    from f5vpn_login import connect_with_session
+except ImportError:
+    print("Error: Could not import f5vpn_login. Please ensure f5vpn_login.py is in the same directory.")
     sys.exit(1)
 
 VPN_HOST = "apm.nap.gsic.titech.ac.jp"
@@ -93,21 +98,14 @@ def get_credentials():
     return username, password, matrix_map
 
 def run_f5vpn(session_id, host):
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    f5vpn_script = os.path.join(script_dir, "f5vpn-login.py")
-    if not os.path.exists(f5vpn_script):
-        print(f"Error: {f5vpn_script} not found.")
-        return
-
-    cmd = ["sudo", f5vpn_script, f"--sessionid={session_id}", host]
-    print(f"Executing: {' '.join(cmd)}")
+    print(f"Connecting to VPN via f5vpn_login (session={session_id[:8]}...)")
     try:
-        subprocess.run(cmd, check=True)
-    except subprocess.CalledProcessError as e:
-        print(f"Error running f5vpn-login.py: {e}")
-        sys.exit(1)
+        connect_with_session(host, session_id)
     except KeyboardInterrupt:
         print("\nExiting...")
+    except Exception as e:
+        print(f"Error during VPN connection: {e}")
+        sys.exit(1)
 
 def main():
     parser = argparse.ArgumentParser(description="Titech Portal + F5 VPN login")
