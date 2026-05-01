@@ -184,7 +184,13 @@ class TitechPortal:
         return "リソース メニュー" in (title or "")
 
     def _validate_otp_page(self, html: str) -> bool:
-        return "Select Label for OTP" in html or "Enter Token Dynamic Password" in html
+        soup = BeautifulSoup(html, "html.parser")
+        body = soup.body
+        body_html = body.decode_contents() if body else ""
+        return (
+            "Select Label for OTP" in body_html
+            or "Enter Token Dynamic Password" in body_html
+        )
 
     def _submit_otp_select(self, inputs: List[HTMLInput], selects: List[HTMLSelect]) -> str:
         req = get_otp_select_submit_request(inputs, selects)
